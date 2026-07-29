@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FF6B6B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>快速计时器</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .timer-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 30px 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .title {
+            text-align: center;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .picker-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .picker-wrapper {
+            position: relative;
+            height: 180px;
+            overflow: hidden;
+            background: #f8f9fa;
+            border-radius: 16px;
+        }
+
+        .picker {
+            width: 80px;
+            height: 180px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            position: relative;
+            z-index: 2;
+        }
+
+        .picker::-webkit-scrollbar {
+            display: none;
+        }
+
+        .picker-item {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #999;
+            scroll-snap-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .picker-item.active {
+            font-size: 42px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .picker-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .picker-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 107, 107, 0.1) 20%, rgba(255, 107, 107, 0.1) 80%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .picker-indicator::before {
+            content: '';
+            position: absolute;
+            left: 30%;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .picker-indicator::after {
+            content: '';
+            position: absolute;
+            left: 35%;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 4px;
+            background: #FF6B6B;
+            border-radius: 2px;
+        }
+
+        .separator {
+            font-size: 32px;
+            color: #999;
+            font-weight: 300;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #FFA726 0%, #FFB74D 100%);
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #E0E0E0 0%, #F5F5F5 100%);
+        }
+
+        .btn svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        .btn-reset svg {
+            fill: #666;
+        }
+
+        .countdown-display {
+            text-align: center;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .countdown-display.active {
+            display: block;
+        }
+
+        .countdown-time {
+            font-size: 64px;
+            font-weight: 200;
+            color: #333;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+        }
+
+        .countdown-label {
+            font-size: 14px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .progress-ring {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            fill: none;
+            stroke-width: 8;
+        }
+
+        .progress-ring-bg {
+            stroke: #f0f0f0;
+        }
+
+        .progress-ring-progress {
+            stroke: url(#gradient);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+
+        .quick-presets {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background: white;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            background: #FF6B6B;
+            color: white;
+            border-color: #FF6B6B;
+        }
+
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .install-prompt.show {
+            display: flex;
+        }
+
+        .install-btn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 380px) {
+            .timer-card {
+                padding: 20px 15px;
+            }
+            
+            .picker {
+                width: 70px;
+            }
+            
+            .picker-item {
+                font-size: 24px;
+            }
+            
+            .picker-item.active {
+                font-size: 36px;
+            }
+            
+            .countdown-time {
+                font-size: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="timer-card">
+            <div class="title">快速计时器</div>
+            
+            <div class="quick-presets">
+                <button class="preset-btn" data-min="1">1分钟</button>
+                <button class="preset-btn" data-min="5">5分钟</button>
+                <button class="preset-btn" data-min="10">10分钟</button>
+                <button class="preset-btn" data-min="25">25分钟</button>
+            </div>
+
+            <!-- 时间选择器 -->
+            <div class="picker-container" id="pickerContainer">
+                <div class="picker-wrapper">
+                    <div class="picker-indicator"></div>
+                    <div class="picker" id="minutePicker">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+                <span class="separator">:</span>
+                <div class="picker-wrapper">
+                    <div class="picker-indicator"></div>
+                    <div class="picker" id="secondPicker">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 倒计时显示 -->
+            <div class="countdown-display" id="countdownDisplay">
+                <svg class="progress-ring" viewBox="0 0 200 200">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#FF6B6B"/>
+                            <stop offset="100%" style="stop-color:#FF8E8E"/>
+                        </linearGradient>
+                    </defs>
+                    <circle class="progress-ring-circle progress-ring-bg" cx="100" cy="100" r="90"/>
+                    <circle class="progress-ring-circle progress-ring-progress" cx="100" cy="100" r="90"
+                            stroke-dasharray="565.48" stroke-dashoffset="0"/>
+                </svg>
+                <div class="countdown-time" id="countdownTime">00:00</div>
+                <div class="countdown-label">剩余时间</div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-reset" id="resetBtn" style="display: none;">
+                    <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                </button>
+                <button class="btn btn-start" id="startBtn">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="install-prompt" id="installPrompt">
+        <span>添加到主屏幕</span>
+        <button class="install-btn" id="installBtn">安装</button>
+    </div>
+
+    <script>
+        // 生成滚轮选项
+        function generatePickerItems(picker, max, defaultValue = 0) {
+            const fragment = document.createDocumentFragment();
+            
+            // 顶部空白
+            const topSpacer = document.createElement('div');
+            topSpacer.className = 'picker-item';
+            topSpacer.style.height = '60px';
+            fragment.appendChild(topSpacer);
+            
+            for (let i = 0; i <= max; i++) {
+                const item = document.createElement('div');
+                item.className = 'picker-item';
+                item.textContent = i.toString().padStart(2, '0');
+                item.dataset.value = i;
+                if (i === defaultValue) item.classList.add('active');
+                fragment.appendChild(item);
+            }
+            
+            // 底部空白
+            const bottomSpacer = document.createElement('div');
+            bottomSpacer.className = 'picker-item';
+            bottomSpacer.style.height = '60px';
+            fragment.appendChild(bottomSpacer);
+            
+            picker.appendChild(fragment);
+            
+            // 滚动到默认值
+            setTimeout(() => {
+                picker.scrollTop = defaultValue * 60;
+            }, 0);
+        }
+
+        // 初始化
+        const minutePicker = document.getElementById('minutePicker');
+        const secondPicker = document.getElementById('secondPicker');
+        generatePickerItems(minutePicker, 99, 5);
+        generatePickerItems(secondPicker, 59, 0);
+
+        // 状态
+        let totalSeconds = 0;
+        let remainingSeconds = 0;
+        let timerInterval = null;
+        let isRunning = false;
+        let isPaused = false;
+
+        // 获取当前选择的时间
+        function getSelectedTime() {
+            const minuteScroll = minutePicker.scrollTop;
+            const secondScroll = secondPicker.scrollTop;
+            const minutes = Math.round(minuteScroll / 60);
+            const seconds = Math.round(secondScroll / 60);
+            return { minutes: Math.min(minutes, 99), seconds: Math.min(seconds, 59) };
+        }
+
+        // 更新活跃状态
+        function updateActiveItem(picker) {
+            const items = picker.querySelectorAll('.picker-item:not(:first-child):not(:last-child)');
+            const scrollTop = picker.scrollTop;
+            const index = Math.round(scrollTop / 60);
+            
+            items.forEach((item, i) => {
+                item.classList.toggle('active', i === index);
+            });
+        }
+
+        // 监听滚动
+        minutePicker.addEventListener('scroll', () => updateActiveItem(minutePicker));
+        secondPicker.addEventListener('scroll', () => updateActiveItem(secondPicker));
+
+        // 格式化时间
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // 播放提示音
+        function playAlarm() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            // 重复3次
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.frequency.value = 800;
+                osc2.type = 'sine';
+                gain2.gain.setValueAtTime(0.5, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc2.start(audioContext.currentTime);
+                osc2.stop(audioContext.currentTime + 0.5);
+            }, 600);
+            
+            setTimeout(() => {
+                const osc3 = audioContext.createOscillator();
+                const gain3 = audioContext.createGain();
+                osc3.connect(gain3);
+                gain3.connect(audioContext.destination);
+                osc3.frequency.value = 800;
+                osc3.type = 'sine';
+                gain3.gain.setValueAtTime(0.5, audioContext.currentTime);
+                gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                osc3.start(audioContext.currentTime);
+                osc3.stop(audioContext.currentTime + 0.5);
+            }, 1200);
+        }
+
+        // 更新进度环
+        function updateProgressRing() {
+            const circle = document.querySelector('.progress-ring-progress');
+            const circumference = 2 * Math.PI * 90;
+            const progress = remainingSeconds / totalSeconds;
+            const offset = circumference - (progress * circumference);
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // 开始计时
+        function startTimer() {
+            if (!isPaused) {
+                const time = getSelectedTime();
+                totalSeconds = time.minutes * 60 + time.seconds;
+                remainingSeconds = totalSeconds;
+                
+                if (totalSeconds === 0) {
+                    alert('请选择计时时间');
+                    return;
+                }
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            
+            document.getElementById('pickerContainer').style.display = 'none';
+            document.querySelector('.quick-presets').style.display = 'none';
+            document.getElementById('countdownDisplay').classList.add('active');
+            document.getElementById('resetBtn').style.display = 'flex';
+            
+            const startBtn = document.getElementById('startBtn');
+            startBtn.className = 'btn btn-pause';
+            startBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+            
+            document.getElementById('countdownTime').textContent = formatTime(remainingSeconds);
+            updateProgressRing();
+            
+            // 请求通知权限
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                document.getElementById('countdownTime').textContent = formatTime(remainingSeconds);
+                updateProgressRing();
+                
+                // 更新页面标题
+                document.title = `${formatTime(remainingSeconds)} - 计时器`;
+                
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerFinished();
+                }
+            }, 1000);
+        }
+
+        // 暂停计时
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            isPaused = true;
+            
+            const startBtn = document.getElementById('startBtn');
+            startBtn.className = 'btn btn-start';
+            startBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+        }
+
+        // 重置计时器
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            isPaused = false;
+            
+            document.getElementById('pickerContainer').style.display = 'flex';
+            document.querySelector('.quick-presets').style.display = 'flex';
+            document.getElementById('countdownDisplay').classList.remove('active');
+            document.getElementById('resetBtn').style.display = 'none';
+            
+            const startBtn = document.getElementById('startBtn');
+            startBtn.className = 'btn btn-start';
+            startBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            
+            document.title = '快速计时器';
+        }
+
+        // 计时结束
+        function timerFinished() {
+            isRunning = false;
+            isPaused = false;
+            
+            playAlarm();
+            
+            // 发送通知
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('计时结束', {
+                    body: '您设定的时间到了！',
+                    icon: 'icon-192.png',
+                    badge: 'icon-192.png',
+                    requireInteraction: true
+                });
+            }
+            
+            // 恢复按钮状态
+            const startBtn = document.getElementById('startBtn');
+            startBtn.className = 'btn btn-start';
+            startBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            
+            // 震动
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+            
+            document.title = '计时结束 - 快速计时器';
+        }
+
+        // 按钮事件
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (isRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+        // 快捷预设
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const minutes = parseInt(btn.dataset.min);
+                minutePicker.scrollTop = minutes * 60;
+                secondPicker.scrollTop = 0;
+            });
+        });
+
+        // PWA 安装提示
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.classList.add('show');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installPrompt.classList.remove('show');
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('Service Worker 注册失败:', err);
+            });
+        }
+
+        // 保持屏幕常亮
+        if ('wakeLock' in navigator) {
+            let wakeLock = null;
+            
+            const requestWakeLock = async () => {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {
+                    console.log('Wake Lock 请求失败:', err);
+                }
+            };
+            
+            document.getElementById('startBtn').addEventListener('click', () => {
+                if (isRunning && !wakeLock) {
+                    requestWakeLock();
+                }
+            });
+            
+            document.addEventListener('visibilitychange', () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
