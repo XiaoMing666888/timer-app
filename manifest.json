@@ -1,28 +1,13 @@
 {
-  "name": "快速计时器",
-  "short_name": "计时器",
-  "description": "简洁快速的倒计时器应用，支持秒表、闹钟提醒、桌面小组件",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#FF6B6B",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ],
-  "categories": ["utilities", "productivity"],
-  "lang": "zh-CN",
-  "dir": "ltr"
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "xiaoming666888.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "xiaoming666888.github",
+  "start_url": "/",
+  "theme_color": "#010101",
+  "description": "一款简单的计时器APP",
+  "id": "1.0"
 }
